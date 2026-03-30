@@ -11,33 +11,45 @@ local function is_android_or_flutter_project()
 	return gradle ~= nil
 end
 
+local function get_adb_output()
+	local completed = vim.system({ "adb", "devices", "-l" }, { text = true }):wait()
+	if completed.code ~= 0 then
+		return ""
+	end
+
+	return completed.stdout or ""
+end
+
+local function parse_device_label(line)
+	local serial, state = line:match("^(%S+)%s+(%S+)")
+	if not serial or state ~= "device" then
+		return nil
+	end
+
+	local model = line:match("model:([^%s]+)")
+	if model and model ~= "" then
+		return "󰄜 " .. model:gsub("_", " ")
+	end
+
+	return "󰄜 " .. serial
+end
+
 function M.get_attached_device()
-    print("debug1")
-    if not is_android_or_flutter_project() then
-        return ""
-    end
+	if not is_android_or_flutter_project() then
+		return ""
+	end
 
-    print("debug2")
-    local handle = io.popen("adb devices -l")
-    if not handle then
-        return ""
-    end
+	local output = get_adb_output()
+	for line in output:gmatch("[^\r\n]+") do
+		if not line:match("^List of devices") then
+			local device_label = parse_device_label(line)
+			if device_label then
+				return device_label
+			end
+		end
+	end
 
-    print("debug3")
-    local result = handle:read("*a")
-    handle:close()
-
-    print("debug4" .. result)
-    for line in result:gmatch("[^\r\n]+") do
-        if not line:match("^List of devices") and line:match("device") then
-            local model = line:match("model:([^%s]+)")
-            if model then
-                return "󰄜 " .. model:gsub("_", " ")
-            end
-        end
-    end
-
-    return "󰥐 No device connected"
+	return "󰥐 No device connected"
 end
 
 function M.android_model()
