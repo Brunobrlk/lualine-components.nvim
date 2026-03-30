@@ -79,7 +79,7 @@ local function refresh(event_buf)
 	status.tokens = tonumber(metadata.tokens) or 0
 end
 
-function M.setup()
+local function setup()
 	local group = vim.api.nvim_create_augroup("LualineCodeCompanion", { clear = true })
 
 	vim.api.nvim_create_autocmd("User", {
@@ -121,5 +121,7 @@ function M.codecompanion_model()
 
 	return string.format("󰚩 %s", status.model)
 end
+
+setup()
 
 return M
